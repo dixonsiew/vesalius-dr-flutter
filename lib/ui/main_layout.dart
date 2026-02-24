@@ -58,7 +58,7 @@ class _MainLayoutState extends State<MainLayout> {
 
     await OneSignal.Notifications.requestPermission(true);
 
-    if (AuthManager.isLogin) {
+    if (AuthManager.instance.isLogin) {
       //OneSignal.shared.sendTag('user', DataManager.userDetails!.userId!);
       String playerId = AuthManager.instance.getPlayerId();
 

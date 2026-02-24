@@ -209,8 +209,6 @@ class ToDoItem extends StatelessWidget {
                       ),
                       const SizedBox(height: 12.0),
                       Row(
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.ideographic,
                         children: [
                           Image.asset(
                             'images/drugs.png',

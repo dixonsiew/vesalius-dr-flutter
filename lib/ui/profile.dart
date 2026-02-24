@@ -73,7 +73,7 @@ class _ProfileState extends State<Profile> {
     
     bool biometricEnabled = false;
     Map<dynamic, dynamic>? m = await DataManager.instance.getItem('biometric');
-    if (m != null && m.containsKey(AuthManager.username!)) {
+    if (m != null && m.containsKey(AuthManager.instance.username!)) {
       biometricEnabled = true;
     }
     
@@ -142,10 +142,10 @@ class _ProfileState extends State<Profile> {
     );
     if (a) {
       await submitBiometricLogin(deviceId);
-      await DataManager.instance.write('__biometric-username__', AuthManager.username!);
+      await DataManager.instance.write('__biometric-username__', AuthManager.instance.username!);
       Map<dynamic, dynamic>? m = await DataManager.instance.getItem('biometric');
       m ??= <dynamic, dynamic>{};
-      m[AuthManager.username!] = 1;
+      m[AuthManager.instance.username!] = 1;
       await DataManager.instance.setItem('biometric', m);
       ctrl.setIsBiometricEnabled(true);
       showSuccessBiometric();
@@ -354,7 +354,7 @@ class _ProfileState extends State<Profile> {
                           await DataManager.instance.remove('__biometric-username__');
                           Map<dynamic, dynamic>? m = await DataManager.instance.getItem('biometric');
                           if (m != null) {
-                            m.remove(AuthManager.username!);
+                            m.remove(AuthManager.instance.username!);
                             await DataManager.instance.setItem('biometric', m);
                           }
                           ctrl.setIsBiometricEnabled(false);

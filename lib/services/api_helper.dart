@@ -30,7 +30,7 @@ class ApiHelper {
     };
     _tokenDio.interceptors.add(InterceptorsWrapper(
       onRequest: (RequestOptions options, RequestInterceptorHandler handler) async {
-        options.headers['Authorization'] = 'Bearer ${AuthManager.token}';
+        options.headers['Authorization'] = 'Bearer ${AuthManager.instance.token}';
         return handler.next(options);
       },
       onResponse:(Response response, ResponseInterceptorHandler handler) async {

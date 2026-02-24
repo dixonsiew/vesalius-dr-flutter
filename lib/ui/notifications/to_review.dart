@@ -172,8 +172,6 @@ class ToReviewItem extends StatelessWidget {
       for (int i = 0; i < li.length; i++) {
         String x = li[i];
         final row = Row(
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.ideographic,
           children: [
             Image.asset(
               im,

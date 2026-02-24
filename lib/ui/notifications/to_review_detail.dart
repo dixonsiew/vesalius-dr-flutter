@@ -101,7 +101,7 @@ class _ToReviewDetailState extends State<ToReviewDetail> {
       var o = {
         'accessionNo': a,
         'prn': p,
-        'reviewDoctor': AuthManager.mcr,
+        'reviewDoctor': AuthManager.instance.mcr,
         'reviewDate': formatCurrentDate(),
         'reviewTime': formatCurrentTime(),
       };
@@ -225,8 +225,6 @@ class _ToReviewDetailState extends State<ToReviewDetail> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0),
               child: Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.ideographic,
                 children: [
                   Image.asset(
                     im,

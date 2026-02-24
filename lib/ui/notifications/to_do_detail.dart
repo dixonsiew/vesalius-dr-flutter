@@ -236,8 +236,6 @@ class _ToDoDetailState extends State<ToDoDetail> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0),
               child: Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.ideographic,
                 children: [
                   Image.asset(
                     'images/microscope.png',

@@ -40,7 +40,7 @@ Future<List<OutpatientQueueSummary>> getOutpatientQueueSummaryList() async {
   List<OutpatientQueueSummary> lx = [];
   
   try {
-    final res = await ApiHelper.tokenDioInterceptor.get('$kServerUrl/vesalius/getOutpatientQueueSumarryList/${AuthManager.branch}/${AuthManager.mcr}');
+    final res = await ApiHelper.tokenDioInterceptor.get('$kServerUrl/vesalius/getOutpatientQueueSumarryList/${AuthManager.instance.branch}/${AuthManager.instance.mcr}');
     final data = res.data;
     if (res.statusCode == 200) {
       final ls = data as List? ?? [];
@@ -59,7 +59,7 @@ Future<List<OutpatientQueueDetail>> getOutpatientQueueDetailList(String queueCri
   List<OutpatientQueueDetail> lx = [];
 
   try {
-    final res = await ApiHelper.tokenDioInterceptor.get('$kServerUrl/vesalius/getOutpatientQueueDetailList/${AuthManager.branch}/$queueCriteria/${AuthManager.mcr}');
+    final res = await ApiHelper.tokenDioInterceptor.get('$kServerUrl/vesalius/getOutpatientQueueDetailList/${AuthManager.instance.branch}/$queueCriteria/${AuthManager.instance.mcr}');
     final data = res.data;
     if (res.statusCode == 200) {
       final ls = data as List? ?? [];
@@ -78,7 +78,7 @@ Future<List<InpatientQueueDetail>> getInpatientDetailList() async {
   List<InpatientQueueDetail> lx = [];
 
   try {
-    final res = await ApiHelper.tokenDioInterceptor.get('$kServerUrl/vesalius/getInpatientQueueDetailList/${AuthManager.branch}/${AuthManager.mcr}');
+    final res = await ApiHelper.tokenDioInterceptor.get('$kServerUrl/vesalius/getInpatientQueueDetailList/${AuthManager.instance.branch}/${AuthManager.instance.mcr}');
     final data = res.data;
     if (res.statusCode == 200) {
       final ls = data as List? ?? [];
@@ -97,7 +97,7 @@ Future<PatientData> getPatientData(String prn) async {
   PatientData o;
 
   try {
-    final res = await ApiHelper.tokenDioInterceptor.get('$kServerUrl/vesalius/patient-data/${AuthManager.branch}/$prn');
+    final res = await ApiHelper.tokenDioInterceptor.get('$kServerUrl/vesalius/patient-data/${AuthManager.instance.branch}/$prn');
     o = PatientData.fromJson(res.data);
   }
 
@@ -112,7 +112,7 @@ Future<List<PatientAllergy>> getPatientAllergyList(String prn) async {
   List<PatientAllergy> lx = [];
 
   try {
-    final res = await ApiHelper.tokenDioInterceptor.get('$kServerUrl/vesalius/patient-allergy/${AuthManager.branch}/$prn');
+    final res = await ApiHelper.tokenDioInterceptor.get('$kServerUrl/vesalius/patient-allergy/${AuthManager.instance.branch}/$prn');
     final data = res.data;
     if (res.statusCode == 200) {
       final ls = data as List? ?? [];
@@ -131,7 +131,9 @@ Future<List<Review>> getReviewList(String dt) async {
   List<Review> lx = [];
 
   try {
-    final res = await ApiHelper.tokenDioInterceptor.get('$kServerUrl/vesalius/get-investigation-report/${AuthManager.branch}/${AuthManager.mcr}/$dt');
+    print(dt);
+    print(AuthManager.instance.mcr);
+    final res = await ApiHelper.tokenDioInterceptor.get('$kServerUrl/vesalius/get-investigation-report/${AuthManager.instance.branch}/${AuthManager.instance.mcr}/$dt');
     final data = res.data;
     if (res.statusCode == 200) {
       final ls = data as List? ?? [];
@@ -152,7 +154,7 @@ Future<String> submitReviewAck(o) async {
   String s = '';
 
   try {
-    final res = await ApiHelper.tokenDioInterceptor.post('$kServerUrl/vesalius/process-doctor-review-investigation/${AuthManager.branch}/${AuthManager.mcr}', data: o);
+    final res = await ApiHelper.tokenDioInterceptor.post('$kServerUrl/vesalius/process-doctor-review-investigation/${AuthManager.instance.branch}/${AuthManager.instance.mcr}', data: o);
     if (res.statusCode == 200) {
       s = '200';
     }
@@ -171,7 +173,7 @@ Future<String> submitReviewAck(o) async {
 
 Future<File> getInvestigationReportPdf(String accessionNo, String fp, void Function(int, int) onReceiveProgress) async {
   try {
-    final res = await ApiHelper.tokenDioInterceptor.get('$kServerUrl/vesalius/get-pdf-investigation-report/${AuthManager.branch}/${AuthManager.mcr}/$accessionNo',
+    final res = await ApiHelper.tokenDioInterceptor.get('$kServerUrl/vesalius/get-pdf-investigation-report/${AuthManager.instance.branch}/${AuthManager.instance.mcr}/$accessionNo',
       onReceiveProgress: onReceiveProgress,
       options: Options(
         responseType: ResponseType.bytes,
@@ -194,7 +196,7 @@ Future<List<TodoNotification>> getTodoNotificationList() async {
   List<TodoNotification> lx = [];
 
   try {
-    final res = await ApiHelper.tokenDioInterceptor.get('$kServerUrl/vesalius/get-doctor-todo-notification/${AuthManager.branch}/${AuthManager.mcr}');
+    final res = await ApiHelper.tokenDioInterceptor.get('$kServerUrl/vesalius/get-doctor-todo-notification/${AuthManager.instance.branch}/${AuthManager.instance.mcr}');
     final data = res.data;
     if (res.statusCode == 200) {
       final ls = data as List? ?? [];
@@ -213,7 +215,7 @@ Future<List<TodoNotification>> getTodoNotificationDetailList(String prn) async {
   List<TodoNotification> lx = [];
 
   try {
-    final res = await ApiHelper.tokenDioInterceptor.get('$kServerUrl/vesalius/get-doctor-todo-notification-details/${AuthManager.branch}/${AuthManager.mcr}/$prn');
+    final res = await ApiHelper.tokenDioInterceptor.get('$kServerUrl/vesalius/get-doctor-todo-notification-details/${AuthManager.instance.branch}/${AuthManager.instance.mcr}/$prn');
     final data = res.data;
     if (res.statusCode == 200) {
       final ls = data as List? ?? [];
@@ -232,7 +234,7 @@ Future<String> submitDrugVerificationAck(o) async {
   String s = '';
 
   try {
-    final res = await ApiHelper.tokenDioInterceptor.post('$kServerUrl/vesalius/process-doctor-todo-ack/${AuthManager.branch}/${AuthManager.mcr}', data: o);
+    final res = await ApiHelper.tokenDioInterceptor.post('$kServerUrl/vesalius/process-doctor-todo-ack/${AuthManager.instance.branch}/${AuthManager.instance.mcr}', data: o);
     if (res.statusCode == 200) {
       s = '200';
     }

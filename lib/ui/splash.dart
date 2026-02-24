@@ -47,8 +47,8 @@ class _SplashState extends State<Splash> {
     OneSignal.User.pushSubscription.addObserver((state) {
       final s = OneSignal.User.pushSubscription.id ?? '';
       if (s.isNotEmpty) {
-        AuthManager.playerId = s;
-        developer.log("==== splash playerid ${AuthManager.playerId} ====");
+        AuthManager.instance.playerId = s;
+        developer.log("==== splash playerid ${AuthManager.instance.playerId} ====");
       }
     });
 
@@ -67,7 +67,7 @@ class _SplashState extends State<Splash> {
   }
 
   void navigationPage() {
-    if (AuthManager.isLogin) {
+    if (AuthManager.instance.isLogin) {
       Get.off(() => const MainLayout());
     }
 

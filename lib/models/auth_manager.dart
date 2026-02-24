@@ -3,13 +3,13 @@ import 'package:vesalius_dr_flutter/models/data_manager.dart';
 
 class AuthManager {
 
-  static String? token;
-  static String? role;
-  static String? mcr;
-  static String? branch;
-  static String? username;
-  static String playerId = '';
-  static bool isLogin = false;
+  String? token;
+  String? role;
+  String? mcr;
+  String? branch;
+  String? username;
+  String playerId = '';
+  bool isLogin = false;
 
   AuthManager._privateConstructor();
 
@@ -58,7 +58,7 @@ class AuthManager {
     String? subId = OneSignal.User.pushSubscription.id;
     playerId = subId ?? '';
 
-    AuthManager.playerId = playerId;
+    AuthManager.instance.playerId = playerId;
     return playerId;
   }
 
