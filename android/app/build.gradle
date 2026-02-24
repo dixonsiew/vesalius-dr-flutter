@@ -1,0 +1,76 @@
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    id "dev.flutter.flutter-gradle-plugin"
+}
+
+android {
+    namespace = "io.gms.nova.dr"
+    compileSdkVersion 36
+    ndkVersion = "27.0.12077973"
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_17
+    }
+
+    // sourceSets {
+    //     main.java.srcDirs += 'src/main/kotlin'
+    // }
+
+    // lintOptions {
+    //     disable 'InvalidPackage'
+    // }
+
+    defaultConfig {
+        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
+        applicationId "io.gms.nova.dr"
+        multiDexEnabled true
+        minSdkVersion flutter.minSdkVersion
+        targetSdkVersion 36
+        versionCode flutter.versionCode
+        versionName flutter.versionName
+    }
+
+    signingConfigs {
+        debug {
+            enableV4Signing true
+        }
+        release {
+            keyAlias 'Nova'
+            keyPassword '$Abc12345'
+            storeFile file('../../gms-nova.keystore')
+            storePassword '$Abc12345'
+            enableV4Signing true
+        }
+    }
+
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
+        release {
+            // TODO: Add your own signing config for the release build.
+            // Signing with the debug keys for now, so `flutter run --release` works.
+            // signingConfig signingConfigs.debug
+            signingConfig signingConfigs.release
+            android.applicationVariants.all { variant ->
+                variant.outputs.all {
+                    outputFileName = "vesalius.drx.apk"
+                }
+            }
+        }
+    }
+}
+
+flutter {
+    source '../..'
+}
+
+dependencies {
+    // implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22"
+}

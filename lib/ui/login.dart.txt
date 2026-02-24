@@ -1,0 +1,304 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:local_auth/local_auth.dart';
+import 'package:device_info/device_info.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:vesalius_dr_flutter/constants.dart';
+import 'package:vesalius_dr_flutter/helpers.dart';
+import 'home.dart';
+import 'package:vesalius_dr_flutter/services/auth-service.dart';
+import 'package:vesalius_dr_flutter/models/auth-manager.dart';
+import 'package:modal_progress_hud/modal_progress_hud.dart';
+import 'package:dio/dio.dart';
+import 'dart:io';
+
+class Login extends StatefulWidget {
+
+  static final String routeName = 'login';
+
+  @override
+  _LoginState createState() => _LoginState();
+}
+
+class _LoginState extends State<Login> {
+
+  TextEditingController usernameController;
+  TextEditingController pwdController;
+  bool isPwd = false;
+  bool isLoading = false;
+  String deviceId = '';
+  bool biometricAuthEnabled = false;
+  List<BiometricType> listBiometric;
+  final LocalAuthentication auth = LocalAuthentication();
+  static final DeviceInfoPlugin deviceInfoPlugin = DeviceInfoPlugin();
+  Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
+
+  @override
+  void initState() {
+    super.initState();
+    usernameController = TextEditingController();
+    pwdController = TextEditingController();
+    usernameController.value = TextEditingValue(text: 'nova.dr');
+    pwdController.value = TextEditingValue(text: 'password');
+    initPlatformState();
+  }
+
+  Future<void> initPlatformState() async {
+    try {
+      if (Platform.isAndroid) {
+        var build = await deviceInfoPlugin.androidInfo;
+        deviceId = build.androidId;
+      }
+
+      else if (Platform.isIOS) {
+        var data = await deviceInfoPlugin.iosInfo;
+        deviceId = data.identifierForVendor;
+      }
+
+      listBiometric = await auth.getAvailableBiometrics();
+      final SharedPreferences prefs = await _prefs;
+      String username = prefs.getString('__biometric-username__') ?? '';
+      setState(() {
+        biometricAuthEnabled = username.isEmpty ? false : true;
+      });
+    } on PlatformException catch (e) {
+
+    }
+  }
+
+  Future<bool> onWillPop() async {
+    return await showConfirmDialog('Are you sure you want to exit ?', context);
+  }
+
+  void login() async {
+    try {
+      var o = {
+        'username': usernameController.text,
+        'password': pwdController.text
+      };
+      setState(() {
+        isLoading = true;
+      });
+      var m = await authenticate(o);
+      var x = m['data'];
+      AuthManager.token = m['token'];
+      AuthManager.role = x['role'];
+      AuthManager.mcr = x['mcr'];
+      AuthManager.branch = x['branch'];
+      AuthManager.username = usernameController.text;
+      setState(() {
+        isLoading = false;
+      });
+      Navigator.pushReplacementNamed(context, Home.routeName);
+    }
+    
+    catch (error) {
+      setState(() {
+        isLoading = false;
+      });
+      if (error.type == DioErrorType.RESPONSE && error.response.statusCode == 401) {
+        await showCustomDialog('Incorrect username or password', context, AlertType.Error);
+      }
+
+      else {
+        handleError(context, error, login);
+      }
+    }
+  }
+
+  void biometricLogin() async {
+    final SharedPreferences prefs = await _prefs;
+    String username = prefs.getString('__biometric-username__') ?? '';
+    bool allowBiometricAuth = username.isEmpty ? false : true;
+
+    if (!allowBiometricAuth) {
+      await showCustomDialog('Biometric authentication not enabled on this device', context, AlertType.Error);
+      return;
+    }
+
+    try {
+      bool x = await auth.canCheckBiometrics;
+      if (x) {
+        String s = 'fingerprint';
+        if (listBiometric.contains(BiometricType.face)) {
+          s = 'face';
+        }
+
+        bool a = await auth.authenticateWithBiometrics(
+          localizedReason: 'Please scan your $s to authenticate',
+          useErrorDialogs: true,
+          stickyAuth: true
+        );
+        if (a) {
+          var o = {
+            'username': username,
+            'password': deviceId,
+            'fromBiometric': 1
+          };
+          setState(() {
+            isLoading = true;
+          });
+          var m = await authenticate(o);
+          var x = m['data'];
+          AuthManager.token = m['token'];
+          AuthManager.role = x['role'];
+          AuthManager.mcr = x['mcr'];
+          AuthManager.branch = x['branch'];
+          AuthManager.username = usernameController.text;
+          setState(() {
+            isLoading = false;
+          });
+          Navigator.pushReplacementNamed(context, Home.routeName);
+        }
+      }
+
+      else {
+        await showCustomDialog('Biometric not enrolled on this device', context, AlertType.Info);
+      }
+    }
+
+    catch (error) {
+      setState(() {
+        isLoading = false;
+      });
+      if (error.type == DioErrorType.RESPONSE && error.response.statusCode == 401) {
+        await showCustomDialog('Biometric authentication failed', context, AlertType.Error);
+      }
+
+      else {
+        handleError(context, error, biometricLogin);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return WillPopScope(
+      onWillPop: onWillPop,
+      child: Scaffold(
+        body: ModalProgressHUD(
+          inAsyncCall: isLoading,
+          child: SafeArea(
+            child: Container(
+              decoration: BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage('images/bkg.jpg'),
+                  fit: BoxFit.cover,
+                ),
+              ),
+              constraints: BoxConstraints.expand(),
+              child: SafeArea(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Flexible(
+                        child: Image.asset(
+                          'images/logo.jpg',
+                          width: 268.0,
+                          height: 228.0,
+                        ),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.only(left: 38.0, right: 38.0),
+                        child: TextField(
+                          controller: usernameController,
+                          style: TextStyle(
+                            color: kLoginInputColor,
+                            fontFamily: 'texgyreadventor',
+                            fontSize: 18.0,
+                          ),
+                          decoration: InputDecoration(
+                            prefixIcon: Icon(
+                              Icons.person_outline,
+                              color: kLoginInputColor,
+                            ),
+                            enabledBorder: UnderlineInputBorder(
+                              borderSide: BorderSide(color: kLoginInputColor),
+                            ),
+                            focusedBorder: UnderlineInputBorder(
+                              borderSide: BorderSide(color: Colors.green),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.only(left: 38.0, right: 38.0),
+                        child: TextField(
+                          controller: pwdController,
+                          obscureText: isPwd,
+                          style: TextStyle(
+                            color: kLoginInputColor,
+                            fontFamily: 'texgyreadventor',
+                            fontSize: 18.0,
+                          ),
+                          decoration: InputDecoration(
+                            prefixIcon: Icon(
+                              Icons.lock_outline,
+                              color: kLoginInputColor,
+                            ),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                isPwd ? Icons.visibility : Icons.visibility_off,
+                                color: kLoginInputColor,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  isPwd = !isPwd;
+                                });
+                              },            
+                            ),
+                            enabledBorder: UnderlineInputBorder(
+                              borderSide: BorderSide(color: kLoginInputColor),
+                            ),
+                            focusedBorder: UnderlineInputBorder(
+                              borderSide: BorderSide(color: Colors.green),
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 20.0),
+                      Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.only(left: 38.0, right: 38.0),
+                        child: RawMaterialButton(
+                          fillColor: kLoginInputColor,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30.0)),
+                          child: Text(
+                            'Login',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontFamily: 'texgyreadventor',
+                              fontSize: 20.0,
+                            ),
+                          ),
+                          onPressed: () {
+                            login();
+                          },
+                        ),
+                      ),
+                      SizedBox(height: 10.0),
+                      biometricAuthEnabled ?
+                      RawMaterialButton(
+                        fillColor: kLoginInputColor,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5.0)),
+                        child: Icon(
+                          Icons.fingerprint,
+                          color: Colors.white,
+                        ),
+                        onPressed: () {
+                          biometricLogin();
+                        },
+                      ) : Container(),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
