@@ -1,0 +1,147 @@
+@baseUrl = http://202.73.42.183:43902/mobile_central_dr-1.0.0
+
+###
+
+# @name login
+POST {{baseUrl}}/login
+Content-Type: application/json
+
+{
+  "username": "nova.doctor",
+  "password": "password"
+}
+
+@token = {{login.response.headers.Authorization}}
+@branchId = {{login.response.body.branch}}
+@mcrId = {{login.response.body.mcr}}
+
+###
+
+POST {{baseUrl}}/login
+Content-Type: application/json
+
+{
+  "password": "xxx111",
+  "fromBiometric": 1
+}
+
+###
+
+GET {{baseUrl}}/user
+Authorization: {{token}}
+
+###
+
+POST {{baseUrl}}/user/add-machine-id
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "machineId": "xxx111"
+}
+
+###
+
+GET {{baseUrl}}/vesalius/getInpatientQueueDetailList/{{branchId}}/{{mcrId}}
+Authorization: {{token}}
+
+###
+
+GET {{baseUrl}}/vesalius/getOutpatientQueueSumarryList/{{branchId}}/{{mcrId}}
+Authorization: {{token}}
+
+###
+
+GET {{baseUrl}}/vesalius/getOutpatientQueueDetailList/{{branchId}}/Appointment/{{mcrId}}
+Authorization: {{token}}
+
+###
+
+GET {{baseUrl}}/vesalius/getOutpatientQueueDetailList/{{branchId}}/Registered/{{mcrId}}
+Authorization: {{token}}
+
+###
+
+GET {{baseUrl}}/vesalius/getOutpatientQueueDetailList/{{branchId}}/Seen/{{mcrId}}
+Authorization: {{token}}
+
+###
+
+GET {{baseUrl}}/vesalius/getOutpatientQueueDetailList/{{branchId}}/Kiv/{{mcrId}}
+Authorization: {{token}}
+
+###
+
+GET {{baseUrl}}/vesalius/patient-data/{{branchId}}/16-001146
+Authorization: {{token}}
+
+###
+
+GET {{baseUrl}}/vesalius/patient-allergy/{{branchId}}/16-001146
+Authorization: {{token}}
+
+###
+
+GET {{baseUrl}}/vesalius/doctor-data/{{branchId}}/{{mcrId}}
+Authorization: {{token}}
+
+###
+
+GET {{baseUrl}}/vesalius/get-doctor-todo-notification/{{branchId}}/{{mcrId}}
+Authorization: {{token}}
+
+###
+
+GET {{baseUrl}}/vesalius/get-doctor-todo-notification-details/{{branchId}}/{{mcrId}}/20-000055
+Authorization: {{token}}
+
+###
+
+POST {{baseUrl}}/vesalius/process-doctor-todo-ack/{{branchId}}/{{mcrId}}
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "accessionNo": "1427",
+  "notificationType": "VOA",
+  "remark": "testing 1"
+}
+
+###
+
+GET {{baseUrl}}/vesalius/get-investigation-report/{{branchId}}/{{mcrId}}/04-Sep-2021
+Authorization: {{token}}
+
+###
+
+GET {{baseUrl}}/vesalius/get-pdf-investigation-report/{{branchId}}/{{mcrId}}/4818
+Authorization: {{token}}
+
+###
+
+"notification_id": 16478,
+    "mcr": "IHP-00001",
+    "notificationType": "Drug Discontinue",
+    "lastUpdateDate": "27/05/2020 16:26:43",
+    "prn": "20-000052",
+    "patientName": "ABBIE NEOH BOON CHONG",
+    "accountNo": "AN20-000052",
+    "doctorName": "Dato Professor Dr NOVA DOCTOR",
+    "accessionNo": "1290",
+    "itemCode": "PMPT000235",
+    "itemDesc": "GLUCOBAY TAB 50MG",
+    "itemQuantity": "3",
+    "uom": "TAB",
+    "instruction": "Take 1 tablet(s) 3 TIMES DAILY",
+    "orderDate": "23-Apr-2020",
+    "orderTime": "15:25",
+    "orderBy": "NOVA.DR",
+    "dispenseQuantity": null,
+    "lastDispenseTime": null,
+    "servedQuantity": null,
+    "lastServedTime": null,
+    "discontinueDate": "21-May-2020",
+    "discontinueTime": "14:56",
+    "discontinueReason": "Allergy",
+    "discontinueBy": "NOVA",
+    "dischargeSummary": null

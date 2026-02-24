@@ -45,6 +45,7 @@ class NotificationsSearchModel extends ChangeNotifier {
   }
 
   void searchTodo(String s) {
+    // ignore: null_aware_in_condition
     if (s.isEmpty) {
       _todoList = _xtodoList;
     }

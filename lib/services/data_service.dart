@@ -8,6 +8,7 @@ import 'package:vesalius_dr_flutter/models/patient_data.dart';
 import 'package:vesalius_dr_flutter/models/patient_allergy.dart';
 import 'package:vesalius_dr_flutter/models/review.dart';
 import 'package:vesalius_dr_flutter/models/todo_notification.dart';
+import 'package:vesalius_dr_flutter/models/user.dart';
 import 'api_helper.dart';
 
 Future<void> submitBiometricLogin(String deviceId) async {
@@ -20,14 +21,29 @@ Future<void> submitBiometricLogin(String deviceId) async {
   }
 }
 
+Future<User> getUser() async {
+  User o;
+
+  try {
+    final res = await ApiHelper.tokenDioInterceptor.get('$kServerUrl/user');
+    o = User.fromJson(res.data);
+  }
+
+  catch (error) {
+    rethrow;
+  }
+
+  return o;
+}
+
 Future<List<OutpatientQueueSummary>> getOutpatientQueueSummaryList() async {
   List<OutpatientQueueSummary> lx = [];
   
   try {
-    var res = await ApiHelper.tokenDioInterceptor.get('$kServerUrl/vesalius/getOutpatientQueueSumarryList/${AuthManager.branch}/${AuthManager.mcr}');
-    var data = res.data;
+    final res = await ApiHelper.tokenDioInterceptor.get('$kServerUrl/vesalius/getOutpatientQueueSumarryList/${AuthManager.branch}/${AuthManager.mcr}');
+    final data = res.data;
     if (res.statusCode == 200) {
-      var ls = data as List? ?? [];
+      final ls = data as List? ?? [];
       lx = ls.map<OutpatientQueueSummary>((x) => OutpatientQueueSummary.fromJson(x)).toList();
     }
   }
@@ -43,10 +59,10 @@ Future<List<OutpatientQueueDetail>> getOutpatientQueueDetailList(String queueCri
   List<OutpatientQueueDetail> lx = [];
 
   try {
-    var res = await ApiHelper.tokenDioInterceptor.get('$kServerUrl/vesalius/getOutpatientQueueDetailList/${AuthManager.branch}/$queueCriteria/${AuthManager.mcr}');
-    var data = res.data;
+    final res = await ApiHelper.tokenDioInterceptor.get('$kServerUrl/vesalius/getOutpatientQueueDetailList/${AuthManager.branch}/$queueCriteria/${AuthManager.mcr}');
+    final data = res.data;
     if (res.statusCode == 200) {
-      var ls = data as List? ?? [];
+      final ls = data as List? ?? [];
       lx = ls.map((x) => OutpatientQueueDetail.fromJson(x)).toList();
     }
   }
@@ -62,10 +78,10 @@ Future<List<InpatientQueueDetail>> getInpatientDetailList() async {
   List<InpatientQueueDetail> lx = [];
 
   try {
-    var res = await ApiHelper.tokenDioInterceptor.get('$kServerUrl/vesalius/getInpatientQueueDetailList/${AuthManager.branch}/${AuthManager.mcr}');
-    var data = res.data;
+    final res = await ApiHelper.tokenDioInterceptor.get('$kServerUrl/vesalius/getInpatientQueueDetailList/${AuthManager.branch}/${AuthManager.mcr}');
+    final data = res.data;
     if (res.statusCode == 200) {
-      var ls = data as List? ?? [];
+      final ls = data as List? ?? [];
       lx = ls.map((x) => InpatientQueueDetail.fromJson(x)).toList();
     }
   }
@@ -81,7 +97,7 @@ Future<PatientData> getPatientData(String prn) async {
   PatientData o;
 
   try {
-    var res = await ApiHelper.tokenDioInterceptor.get('$kServerUrl/vesalius/patient-data/${AuthManager.branch}/$prn');
+    final res = await ApiHelper.tokenDioInterceptor.get('$kServerUrl/vesalius/patient-data/${AuthManager.branch}/$prn');
     o = PatientData.fromJson(res.data);
   }
 
@@ -96,10 +112,10 @@ Future<List<PatientAllergy>> getPatientAllergyList(String prn) async {
   List<PatientAllergy> lx = [];
 
   try {
-    var res = await ApiHelper.tokenDioInterceptor.get('$kServerUrl/vesalius/patient-allergy/${AuthManager.branch}/$prn');
-    var data = res.data;
+    final res = await ApiHelper.tokenDioInterceptor.get('$kServerUrl/vesalius/patient-allergy/${AuthManager.branch}/$prn');
+    final data = res.data;
     if (res.statusCode == 200) {
-      var ls = data as List? ?? [];
+      final ls = data as List? ?? [];
       lx = ls.map((x) => PatientAllergy.fromJson(x)).toList();
     }
   }
@@ -115,23 +131,18 @@ Future<List<Review>> getReviewList(String dt) async {
   List<Review> lx = [];
 
   try {
-    var res = await ApiHelper.tokenDioInterceptor.get('$kServerUrl/vesalius/get-investigation-report/${AuthManager.branch}/${AuthManager.mcr}/$dt');
-    var data = res.data;
+    final res = await ApiHelper.tokenDioInterceptor.get('$kServerUrl/vesalius/get-investigation-report/${AuthManager.branch}/${AuthManager.mcr}/$dt');
+    final data = res.data;
     if (res.statusCode == 200) {
-      var ls = data as List? ?? [];
+      final ls = data as List? ?? [];
       lx = ls.map((x) => Review.fromJson(x)).toList();
     }
   }
 
-  catch (error) {
-    if (error is DioException) {
-      DioException e = error;
-      if (e.response?.statusCode != 502) {
-        rethrow;
-      }
+  on DioException catch (error) {
+    if (error.response?.statusCode != 502) {
+      rethrow;
     }
-
-    rethrow;
   }
 
   return lx;
@@ -141,7 +152,7 @@ Future<String> submitReviewAck(o) async {
   String s = '';
 
   try {
-    var res = await ApiHelper.tokenDioInterceptor.post('$kServerUrl/vesalius/process-doctor-review-investigation/${AuthManager.branch}/${AuthManager.mcr}', data: o);
+    final res = await ApiHelper.tokenDioInterceptor.post('$kServerUrl/vesalius/process-doctor-review-investigation/${AuthManager.branch}/${AuthManager.mcr}', data: o);
     if (res.statusCode == 200) {
       s = '200';
     }
@@ -159,9 +170,8 @@ Future<String> submitReviewAck(o) async {
 }
 
 Future<File> getInvestigationReportPdf(String accessionNo, String fp, void Function(int, int) onReceiveProgress) async {
-
   try {
-    var res = await ApiHelper.tokenDioInterceptor.get('$kServerUrl/vesalius/get-pdf-investigation-report/${AuthManager.branch}/${AuthManager.mcr}/$accessionNo',
+    final res = await ApiHelper.tokenDioInterceptor.get('$kServerUrl/vesalius/get-pdf-investigation-report/${AuthManager.branch}/${AuthManager.mcr}/$accessionNo',
       onReceiveProgress: onReceiveProgress,
       options: Options(
         responseType: ResponseType.bytes,
@@ -169,7 +179,7 @@ Future<File> getInvestigationReportPdf(String accessionNo, String fp, void Funct
       )
     );
     File file = File(fp);
-    var raf = file.openSync(mode: FileMode.write);
+    final raf = file.openSync(mode: FileMode.write);
     raf.writeFromSync(res.data);
     await raf.close();
     return file;
@@ -184,10 +194,10 @@ Future<List<TodoNotification>> getTodoNotificationList() async {
   List<TodoNotification> lx = [];
 
   try {
-    var res = await ApiHelper.tokenDioInterceptor.get('$kServerUrl/vesalius/get-doctor-todo-notification/${AuthManager.branch}/${AuthManager.mcr}');
-    var data = res.data;
+    final res = await ApiHelper.tokenDioInterceptor.get('$kServerUrl/vesalius/get-doctor-todo-notification/${AuthManager.branch}/${AuthManager.mcr}');
+    final data = res.data;
     if (res.statusCode == 200) {
-      var ls = data as List? ?? [];
+      final ls = data as List? ?? [];
       lx = ls.map((x) => TodoNotification.fromJson(x)).toList();
     }
   }
@@ -203,10 +213,10 @@ Future<List<TodoNotification>> getTodoNotificationDetailList(String prn) async {
   List<TodoNotification> lx = [];
 
   try {
-    var res = await ApiHelper.tokenDioInterceptor.get('$kServerUrl/vesalius/get-doctor-todo-notification-details/${AuthManager.branch}/${AuthManager.mcr}/$prn');
-    var data = res.data;
+    final res = await ApiHelper.tokenDioInterceptor.get('$kServerUrl/vesalius/get-doctor-todo-notification-details/${AuthManager.branch}/${AuthManager.mcr}/$prn');
+    final data = res.data;
     if (res.statusCode == 200) {
-      var ls = data as List? ?? [];
+      final ls = data as List? ?? [];
       lx = ls.map((x) => TodoNotification.fromJson(x)).toList();
     }
   }
@@ -222,7 +232,7 @@ Future<String> submitDrugVerificationAck(o) async {
   String s = '';
 
   try {
-    var res = await ApiHelper.tokenDioInterceptor.post('$kServerUrl/vesalius/process-doctor-todo-ack/${AuthManager.branch}/${AuthManager.mcr}', data: o);
+    final res = await ApiHelper.tokenDioInterceptor.post('$kServerUrl/vesalius/process-doctor-todo-ack/${AuthManager.branch}/${AuthManager.mcr}', data: o);
     if (res.statusCode == 200) {
       s = '200';
     }
@@ -246,7 +256,6 @@ Future<String> submitChangePassword(o) async {
     await ApiHelper.tokenDioInterceptor.post('$kServerUrl/user/change-password', data: o);
     s = '200';
   }
-  
   catch (error) {
     rethrow;
   }

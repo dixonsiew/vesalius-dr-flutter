@@ -5,8 +5,7 @@ Future<Map<String, dynamic>> authenticate(o) async {
   Map<String, dynamic> m = {};
 
   try {
-    
-    var res = await ApiHelper.dio.post('$kServerUrl/login', data: o);
+    final res = await ApiHelper.dio.post('$kServerUrl/login', data: o);
     String? token = res.headers.value('Authorization');
     m['token'] = token;
     m['data'] = res.data;

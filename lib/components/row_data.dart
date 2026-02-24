@@ -15,21 +15,26 @@ class RowData extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
           child: Text(
             label,
-            style: kAllergiesCardTextStyle.copyWith(
-              fontWeight: FontWeight.bold,
+            style: kTextStyle1.copyWith(
+              fontSize: 14.0,
+              fontWeight: FontWeight.w400,
+              color: const Color(0xFF7C7C7C),
             ),
           ),
         ),
         Expanded(
           child: Text(
-            text.trim(),
-            style: kAllergiesCardTextStyle,
+            text,
+            style: kTextStyle1.copyWith(
+              fontSize: 14.0,
+              fontWeight: FontWeight.w600,
+              color: kTextColor1,
+            ),
           ),
         ),
       ],

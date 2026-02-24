@@ -1,4 +1,4 @@
-package io.gms.nova.dr
+package io.gms.nova.m.dev.vesalius.dr
 
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.android.FlutterFragmentActivity

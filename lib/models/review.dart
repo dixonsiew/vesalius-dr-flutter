@@ -70,10 +70,10 @@ class Review {
       String k = o.patientName.toUpperCase();
       String ki = o.investigationType.toUpperCase();
       if (m.containsKey(k)) {
-        Map<String, List<String>> mi = m[k]!;
-        if (mi.containsKey(ki)) {
-          List<String> li = mi[ki]!;
-          li.add(o.serviceDesc);
+        Map<String, List<String>>? mi = m[k];
+        if (mi!.containsKey(ki)) {
+          List<String>? li = mi[ki];
+          li!.add(o.serviceDesc);
           mi[ki] = li;
           m[k] = mi;
           continue;
@@ -90,7 +90,7 @@ class Review {
     }
 
     for (var o in ls) {
-      var mi = m[o.patientName.toUpperCase()];
+      final mi = m[o.patientName.toUpperCase()];
       o.setInvestigationTypes(mi!);
     }
 

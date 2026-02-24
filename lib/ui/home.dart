@@ -1,23 +1,36 @@
+import 'package:date_format/date_format.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
-import 'package:vesalius_dr_flutter/components/app_drawer.dart';
+// import 'package:carousel_slider/carousel_slider.dart';
+import 'package:get/get.dart';
+import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
+import 'package:vesalius_dr_flutter/components/app_shared.dart';
 import 'package:vesalius_dr_flutter/constants.dart';
+import 'package:vesalius_dr_flutter/controllers/home_ctrl.dart';
+import 'package:vesalius_dr_flutter/controllers/main_layout_ctrl.dart';
 import 'package:vesalius_dr_flutter/helpers.dart';
+import 'package:vesalius_dr_flutter/models/auth_manager.dart';
 import 'package:vesalius_dr_flutter/models/outpatient.dart';
-import 'package:vesalius_dr_flutter/models/patient_count_model.dart';
-import 'package:vesalius_dr_flutter/models/patient_search_model.dart';
+import 'package:vesalius_dr_flutter/models/user.dart';
 import 'package:vesalius_dr_flutter/services/data_service.dart';
 
-import 'inpatient.dart';
-import 'outpatient.dart';
+import 'home/chart0_1w.dart';
+import 'home/chart1_1w.dart';
+import 'home/chart2_1w.dart';
+import 'home/chart3_1w.dart';
+import 'home/chart_all.dart';
+import 'profile.dart';
 
 class Home extends StatefulWidget {
+  
+  static const String routeName = '/Home';
 
-  static const String routeName = 'Dashboard';
+  final void Function(int) onPatient;
 
-  const Home({super.key});
+  const Home({
+    super.key,
+    required this.onPatient,
+  });
 
   @override
   State<Home> createState() => _HomeState();
@@ -25,51 +38,56 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home>, SingleTickerProviderStateMixin {
 
-  int tabIndex = 0;
-  bool isSearch = false;
   late TabController tabController;
-  late final TextEditingController searchController;
-  final GlobalKey<ScaffoldState> drawerKey = GlobalKey();
+  final CarouselController carController = CarouselController();
+  final GlobalKey<RefreshIndicatorState> refreshIndicatorKey = GlobalKey<RefreshIndicatorState>();
+
+  final HomeCtrl ctrl = Get.put(HomeCtrl());
+  final MainLayoutCtrl mainLayoutCtrl = Get.put(MainLayoutCtrl());
 
   @override
   void initState() {
     super.initState();
-    searchController = TextEditingController();
-    tabController = TabController(vsync: this, length: 2);
+    tabController = TabController(length: 4, vsync: this);
     tabController.addListener(() {
-      
+      ctrl.setCurrent(tabController.index);
     });
-    tabController.index = 0;
     load();
   }
 
   @override
   void dispose() {
-    searchController.dispose();
     tabController.removeListener(() { });
     tabController.dispose();
     super.dispose();
   }
 
   void load() async {
-    final dlg = CustomDialog.of(context);
     try {
-      PatientCountModel cm = Provider.of<PatientCountModel>(context, listen: false);
-      PatientSearchModel csm = Provider.of<PatientSearchModel>(context, listen: false);
-      var lx = await getOutpatientQueueSummaryList();
-      var ly = await getInpatientDetailList();
-      cm.setOutpatientCount(getOutpatientCount(lx));
-      cm.setInpatientCount(ly.length);
-      csm.setInpatientList(ly);
+      ctrl.setIsLoading(true);
+      await AuthManager.instance.load();
+      User o = await getUser();
+      ctrl.setUser(o);
+      final lx = await getOutpatientQueueSummaryList();
+      final ly = await getInpatientDetailList();
+      mainLayoutCtrl.setOutpatientCount(getOutpatientCount(lx));
+      mainLayoutCtrl.setInpatientCount(ly.length);
+      ctrl.setIsLoading(false);
     }
 
     on DioException catch (error) {
-      dlg.handleError(error, load);
+      ctrl.setIsLoading(false);
+      handleError(error, load);
     }
 
     catch (error) {
-      dlg.showCustomDialog(error.toString(), AlertType.error);
+      ctrl.setIsLoading(false);
+      await showCustomDialog(error.toString(), AlertType.error);
     }
+  }
+
+  Future<void> onRefresh() async {
+    load();
   }
 
   int getOutpatientCount(List<OutpatientQueueSummary> lx) {
@@ -83,102 +101,314 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home>, S
     return n;
   }
 
-  void filterInpatient(String s) {
-    Provider.of<PatientSearchModel>(context, listen: false).searchInpatient(s);
+  String formatDateTime(DateTime dt) {
+    return formatDate(dt, [DD, ', ', d, ' ', M, ' ', yyyy]);
   }
 
-  Widget? buildLeading() {
-    if (isSearch) {
-      return IconButton(
-        icon: const Icon(
-          Icons.arrow_back_ios,
-          color: kAppBarIconColor,
-        ),
-        onPressed: () {
-          setState(() {
-            isSearch = false;
-          });
-        },
-      );
-    }
-
-    return null;
+  String get name {
+    User? o = ctrl.user;
+    String s = '${o?.title} ${o?.firstName} ${o?.middleName} ${o?.lastName ?? ''}'.trim();
+    return s;
   }
 
-  List<Widget> buildActions(BuildContext context) {
-    List<Widget> lx = [];
-    if (tabIndex == 1 && !isSearch) {
-      lx.add(
-        IconButton(
-          icon: const Icon(
-            Icons.search,
-            color: kAppBarIconColor,
-          ),
-          onPressed: () {
-            //showSearch(context: context, delegate: HomeSearch());
-            setState(() {
-              isSearch = true;
-            });
-          },
-        )
-      );
+  String get greetings {
+    var h = DateTime.now().hour;
+    String s = 'Good';
+    String b = 'Night';
+    if (h < 12) {
+      b = 'Morning';
     }
 
-    lx.add(
-      IconButton(
-        onPressed: () {
-          drawerKey.currentState?.openEndDrawer();
-        },
-        icon: const Icon(
-          Icons.menu,
-          color: kAppBarIconColor,
-        ),
-      )
-    );
+    else if (h >= 12 && h < 17) {
+      b = 'Afternoon';
+    }
 
-    return lx;
+    else if (h >= 17 && h <= 19) {
+      b = 'Evening';
+    }
+
+    return '$s $b';
   }
 
-  Widget buildTitle() {
-    if (!isSearch) {
-      return const Text(
-        'MY PATIENTS',
-        style: kAppBarTitleTextStyle,
-      );
-    }
-
-    return Material(
-      elevation: 20.0,
-      borderRadius: BorderRadius.circular(5.0),
-      shadowColor: Colors.black,
-      child: TextField(
-        controller: searchController,
-        autofocus: true,
-        textInputAction: TextInputAction.search,
-        cursorColor: kTextColor,
-        decoration: InputDecoration(
-          hintText: 'Search...',
-          prefixIcon: const Icon(
-            Icons.search,
-            color: kAppBarIconColor,
-          ),
-          contentPadding: const EdgeInsets.symmetric(vertical: 0.0, horizontal: 0.0),
-          enabledBorder: OutlineInputBorder(
-            borderSide: const BorderSide(
-              color: Colors.white,
-              width: 3.0,
+  Widget buildContent() {
+    return ctrl.isLoading ? Container() :
+    Scrollbar(
+      child: ListView(
+        shrinkWrap: true,
+        children: [
+          const SizedBox(height: 25.0),
+          Padding(
+            padding: const EdgeInsets.only(left: 25.0, right: 17.0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '$greetings,',
+                        style: kTextStyle1.copyWith(
+                          fontSize: 16.0,
+                          fontWeight: FontWeight.w600,
+                          color: kTextColor4,
+                        ),
+                      ),
+                      Text(
+                        name,
+                        style: kTextStyle1.copyWith(
+                          fontSize: 20.0,
+                          fontWeight: FontWeight.w700,
+                          color: kTextColor1,
+                        ),
+                      ),
+                      Text(
+                        formatDateTime(DateTime.now()),
+                        style: kTextStyle1.copyWith(
+                          fontSize: 12.0,
+                          fontWeight: FontWeight.w700,
+                          color: kTextColor2,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Get.to(() => Profile(user: ctrl.user!)),
+                  splashRadius: 24.0,
+                  icon: Image.asset(
+                    'images/doc.png',
+                    width: 48.0,
+                    height: 48.0,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ],
             ),
-            borderRadius: BorderRadius.circular(5.0),
           ),
-          focusedBorder: OutlineInputBorder(
-            borderSide: const BorderSide(
-              color: Colors.grey,
-              width: 1.0,
+          const SizedBox(height: 24.0),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Container(
+                  margin: const EdgeInsets.only(left: 25.0),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(5.0),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFDBDBDB).withValues(alpha: 0.3),
+                        blurRadius: 8.0,// changes position of shadow
+                      ),
+                    ],
+                  ),
+                  child: Material(
+                    color: const Color(0xFFEF6060),
+                    borderRadius: BorderRadius.circular(5.0),
+                    child: InkWell(
+                      onTap: () => widget.onPatient.call(0),
+                      borderRadius: BorderRadius.circular(5.0),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(15.0, 20.0, 15.0, 15.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Image.asset(
+                                  'images/patient-1.png',
+                                  width: 24.0,
+                                  height: 24.0,
+                                  fit: BoxFit.cover,
+                                ),
+                                Obx(() =>
+                                  Text(
+                                    mainLayoutCtrl.outpatientCount.toString(),
+                                    style: kTextStyle1.copyWith(
+                                      fontSize: 26.0,
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 13.0),
+                            Text(
+                              'Today’s Outpatients',
+                              style: kTextStyle1.copyWith(
+                                fontSize: 12.0,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 15.0),
+              Expanded(
+                child: Container(
+                  margin: const EdgeInsets.only(right: 25.0),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(5.0),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFDBDBDB).withValues(alpha: 0.3),
+                        blurRadius: 8.0,// changes position of shadow
+                      ),
+                    ],
+                  ),
+                  child: Material(
+                    color: const Color(0xFF5590FC),
+                    borderRadius: BorderRadius.circular(5.0),
+                    child: InkWell(
+                      onTap: () => widget.onPatient.call(1),
+                      borderRadius: BorderRadius.circular(5.0),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(15.0, 20.0, 15.0, 15.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Image.asset(
+                                  'images/bed.png',
+                                  width: 24.0,
+                                  height: 24.0,
+                                  fit: BoxFit.cover,
+                                ),
+                                Obx(() =>
+                                  Text(
+                                    mainLayoutCtrl.inpatientCount.toString(),
+                                    style: kTextStyle1.copyWith(
+                                      fontSize: 26.0,
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 13.0),
+                            Text(
+                              'Today’s Inpatients',
+                              style: kTextStyle1.copyWith(
+                                fontSize: 12.0,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 17.0),
+          Padding(
+            padding: const EdgeInsets.only(left: 25.0, right: 17.0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.ideographic,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        'Dashboard Overview',
+                        style: kTextStyle1.copyWith(
+                          fontSize: 16.0,
+                          fontWeight: FontWeight.w700,
+                          color: kTextColor1,
+                        ),
+                      ),
+                      const SizedBox(height: 5.0),
+                      Text(
+                        '*Data last updated on 23 Nov 2022',
+                        style: kTextStyle1.copyWith(
+                          fontSize: 10.0,
+                          fontWeight: FontWeight.w600,
+                          color: kTextColor2,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => Get.to(() => const ChartAll()),
+                  style: TextButton.styleFrom(
+                    foregroundColor: kPrimaryColor,
+                  ),
+                  child: Text(
+                    'View All',
+                    style: kTextStyle1.copyWith(
+                      fontSize: 14.0,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
             ),
-            borderRadius: BorderRadius.circular(5.0),
           ),
-        ),
-        onChanged: filterInpatient,
+          const SizedBox(height: 15.0),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 25.0),
+            child: SizedBox(
+              height: 440.0,
+              child: DefaultTabController(
+                length: 4,
+                child: Builder(
+                  builder: (context) => TabBarView(
+                    controller: tabController,
+                    physics: const BouncingScrollPhysics(),
+                    children: const [
+                      Chart01w(),
+                      Chart11w(),
+                      Chart21w(),
+                      Chart31w(),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Obx(() =>
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [0, 1, 2, 3].map((i) {
+                return GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onTap: () {
+                    tabController.animateTo(i);
+                  },
+                  child: Container(
+                    width: 8.0,
+                    height: 8.0,
+                    margin: const EdgeInsets.symmetric(vertical: 14.0, horizontal: 6.0),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: ctrl.current == i ? kPrimaryColor : const Color(0xFFDADADA),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -186,98 +416,16 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home>, S
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return DefaultTabController(
-      length: 2,
-      child: Builder(
-        builder: (BuildContext context) {
-          return Scaffold(
-            key: drawerKey,
-            appBar: AppBar(
-              systemOverlayStyle: const SystemUiOverlayStyle(statusBarBrightness: Brightness.dark, statusBarIconBrightness: Brightness.light, statusBarColor: Colors.black),
-              automaticallyImplyLeading: false,
-              backgroundColor: Colors.white,
-              elevation: 2.0,
-              leading: buildLeading(),
-              actions: buildActions(context),
-              title: buildTitle(),
-              bottom: TabBar(
-                controller: tabController,
-                onTap: (int i) {
-                  setState(() {
-                    tabIndex = i;
-                  });
-                },
-                tabs: [
-                  Tab(
-                    child: Text(
-                      'Outpatient (${Provider.of<PatientCountModel>(context).outpatientCount})',
-                      style: kTabTitleTextStyle,
-                    ),
-                  ),
-                  Tab(
-                    child: Text(
-                      'Inpatient (${Provider.of<PatientCountModel>(context).inpatientCount})',
-                      style: kTabTitleTextStyle,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            backgroundColor: Colors.white,
-            body: SafeArea(
-              child: TabBarView(
-                controller: tabController,
-                children: const [
-                  Outpatient(),
-                  Inpatient(),
-                ],
-              ),
-            ),
-            endDrawer: const AppDrawer(),
-          );
-        },
+    return Obx(() =>
+      ModalProgressHUD(
+        inAsyncCall: ctrl.isLoading,
+        blur: kBlur,
+        progressIndicator: const AppActivityIndicator(),
+        child: buildContent(),
       ),
     );
   }
-  
+
   @override
   bool get wantKeepAlive => true;
-}
-
-class HomeSearch extends SearchDelegate<String> {
-
-  @override
-  List<Widget> buildActions(BuildContext context) {
-    return [
-      IconButton(
-        icon: const Icon(Icons.clear), 
-        onPressed: () {
-          query = '';
-        },
-      ),
-    ];
-  }
-
-  @override
-  Widget buildLeading(BuildContext context) {
-    return IconButton(
-      icon: AnimatedIcon(
-        icon: AnimatedIcons.menu_arrow,
-        progress: transitionAnimation,
-      ),
-      onPressed: () {
-        close(context, '');
-      },
-    );
-  }
-
-  @override
-  Widget buildResults(BuildContext context) {
-    return Container();
-  }
-
-  @override
-  Widget buildSuggestions(BuildContext context) {
-    return Container();
-  }
 }

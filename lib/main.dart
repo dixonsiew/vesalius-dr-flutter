@@ -2,16 +2,22 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:get/get.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
-import 'package:vesalius_dr_flutter/models/patient_count_model.dart';
-import 'package:vesalius_dr_flutter/models/notification_count_model.dart';
-import 'package:vesalius_dr_flutter/models/patient_search_model.dart';
-import 'package:vesalius_dr_flutter/models/notifications_search_model.dart';
-import 'package:vesalius_dr_flutter/ui/login.dart';
-import 'package:vesalius_dr_flutter/ui/change_password.dart';
-import 'package:vesalius_dr_flutter/ui/splash.dart';
 
+import 'constants.dart';
+import 'models/data_manager.dart';
+import 'models/notification_count_model.dart';
+import 'models/notifications_search_model.dart';
+import 'models/patient_count_model.dart';
+import 'models/patient_search_model.dart';
 import 'ui/main_layout.dart';
+import 'ui/splash.dart';
+
+late LazyBox box;
 
 class MyHttpOverrides extends HttpOverrides {
   @override
@@ -20,8 +26,11 @@ class MyHttpOverrides extends HttpOverrides {
   }
 }
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   HttpOverrides.global = MyHttpOverrides();
+  await dotenv.load(fileName: ".env");
+  box = await DataManager.instance.initHive();
   runApp(const MyApp());
 }
 
@@ -32,8 +41,12 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(statusBarColor: Colors.black));
-
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarColor: Colors.white,
+      statusBarBrightness: Brightness.light,
+      statusBarIconBrightness: Brightness.dark,
+    ));
+    
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (context) => PatientCountModel()),
@@ -41,9 +54,18 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (context) => PatientSearchModel()),
         ChangeNotifierProvider(create: (context) => NotificationsSearchModel()),
       ],
-      child: MaterialApp(
+      child: GetMaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'VESALIUS.dr',
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [
+          Locale('en', 'US'),
+          Locale('en', 'AU'),
+        ],
         theme: ThemeData(
           // This is the theme of your application.
           //
@@ -55,18 +77,22 @@ class MyApp extends StatelessWidget {
           // Notice that the counter didn't reset back to zero; the application
           // is not restarted.
           primarySwatch: Colors.blue,
-          // This makes the visual density adapt to the platform that you run
-          // the app on. For desktop platforms, the controls will be smaller and
-          // closer together (more dense) than on mobile platforms.
+          fontFamily: kBodyFont,
           visualDensity: VisualDensity.adaptivePlatformDensity,
           appBarTheme: Theme.of(context).appBarTheme.copyWith(shadowColor: Colors.black),
         ),
         initialRoute: Splash.routeName,
-        routes: {
-          Splash.routeName: (context) => const Splash(),
-          Login.routeName: (context) => const Login(),
-          MainLayout.routeName: (context) => const MainLayout(),
-          ChangePassword.routeName: (context) => const ChangePassword(),
+        getPages: [
+          GetPage(name: Splash.routeName, page: () => const Splash(), transition: Transition.fadeIn),
+          GetPage(name: MainLayout.routeName, page: () => const MainLayout()),
+        ],
+        builder: (context, child) {
+          final mediaQueryData = MediaQuery.of(context);
+          final scale = mediaQueryData.textScaler.clamp(minScaleFactor: 1.0, maxScaleFactor: 1.0);
+          return MediaQuery(
+            data: MediaQuery.of(context).copyWith(textScaler: scale),
+            child: child!,
+          );
         },
       ),
     );

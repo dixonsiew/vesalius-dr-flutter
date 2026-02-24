@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get/get.dart';
+import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'package:vesalius_dr_flutter/components/bottom_bar.dart';
+import 'package:vesalius_dr_flutter/constants.dart';
+import 'package:vesalius_dr_flutter/controllers/main_layout_ctrl.dart';
+import 'package:vesalius_dr_flutter/controllers/patients_ctrl.dart';
 import 'package:vesalius_dr_flutter/helpers.dart';
-import 'package:vesalius_dr_flutter/ui/home.dart';
+import 'package:vesalius_dr_flutter/models/auth_manager.dart';
+import 'package:vesalius_dr_flutter/models/notification_manager.dart';
+import 'package:vesalius_dr_flutter/ui/appointment.dart';
 import 'package:vesalius_dr_flutter/ui/notifications.dart';
+import 'package:vesalius_dr_flutter/ui/patients.dart';
 
-import 'login.dart';
+import 'home.dart';
 
 class MainLayout extends StatefulWidget {
 
@@ -27,11 +35,16 @@ class _MainLayoutState extends State<MainLayout> {
   late List<Widget> pages;
   late PageController pageController;
 
+  final MainLayoutCtrl ctrl = Get.put(MainLayoutCtrl());
+  final PatientsCtrl patientsCtrl = Get.put(PatientsCtrl());
+
   @override
   void initState() {
     super.initState();
-    pages = [const Home(), const Notifications()];
-    pageController = PageController(initialPage: 0);
+    pages = [Home(onPatient: onPatient), const Patients(), const Appointment(), const Notifications()];
+    ctrl.setIndex(widget.index);
+    pageController = PageController(initialPage: ctrl.index);
+    initPlatformState();
   }
 
   @override
@@ -40,15 +53,26 @@ class _MainLayoutState extends State<MainLayout> {
     super.dispose();
   }
 
-  void onPopInvokedWithResult(bool didPop, result) async {
-    if (didPop) return;
-    final nav = Navigator.of(context);
-    bool b = await CustomDialog.of(context).showConfirmDialog('Are you sure you want to logout ?');
-    if (b) {
-      nav.pushReplacementNamed(Login.routeName);
-    }
+  void initPlatformState() async {
+    OneSignal.Notifications.addForegroundWillDisplayListener(NotificationManager.instance.foregroundWillDisplayListener);
 
-    return;
+    await OneSignal.Notifications.requestPermission(true);
+
+    if (AuthManager.isLogin) {
+      //OneSignal.shared.sendTag('user', DataManager.userDetails!.userId!);
+      String playerId = AuthManager.instance.getPlayerId();
+
+      if (playerId.isNotEmpty) {
+        //await updatePlayerId(playerId);
+      }
+    }
+  }
+
+  void onPatient(int i) {
+    ctrl.setIndex(1);
+    patientsCtrl.setTabIndex(i);
+    pageController.jumpToPage(1);
+    patientsCtrl.tabController?.animateTo(i);
   }
 
   Widget get buildContent => PageView(
@@ -57,27 +81,40 @@ class _MainLayoutState extends State<MainLayout> {
     children: pages,
   );
 
+  void onPopInvokedWithResult(bool didPop, result) async {
+    if (didPop) return;
+    bool b = await showConfirmDialog('Are you sure you want to exit ?');
+    if (b) {
+      SystemNavigator.pop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
+      canPop: false,
       onPopInvokedWithResult: onPopInvokedWithResult,
       child: Scaffold(
+        resizeToAvoidBottomInset: false,
         appBar: AppBar(
-          systemOverlayStyle: const SystemUiOverlayStyle(statusBarBrightness: Brightness.dark, statusBarIconBrightness: Brightness.light, statusBarColor: Colors.black),
+          systemOverlayStyle: const SystemUiOverlayStyle(statusBarBrightness: Brightness.light, statusBarIconBrightness: Brightness.dark, statusBarColor: kBgColor1),
           toolbarHeight: 0.0,
-          backgroundColor: Colors.white,
+          backgroundColor: kBgColor1,
           elevation: 0.0,
           automaticallyImplyLeading: false,
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: kBgColor1,
         body: SafeArea(
           child: buildContent,
         ),
-        bottomNavigationBar: BottomBar(
-          index: 0,
-          onTap: (int i) {
-            pageController.jumpToPage(i);
-          },
+        bottomNavigationBar: Obx(() =>
+          BottomBar(
+            index: ctrl.index,
+            onTap: (int i) {
+              ctrl.setIndex(i);
+              pageController.jumpToPage(i);
+            },
+          ),
         ),
       ),
     );
