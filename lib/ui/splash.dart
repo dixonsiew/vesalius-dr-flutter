@@ -31,6 +31,12 @@ class _SplashState extends State<Splash> {
   }
 
   void load() async {
+    bool b = await DataManager.instance.getItem('isFirstRun') ?? true;
+    if (b) {
+      await DataManager.instance.clear();
+      await DataManager.instance.setItem('isFirstRun', false);
+    }
+    
     await AuthManager.instance.load();
     initPlatformState();
   }
